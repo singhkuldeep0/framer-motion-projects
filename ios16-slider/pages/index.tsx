@@ -1,86 +1,126 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
+import {
+  motion,
+  MotionConfig,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
+import { useEffect, useState } from "react";
+import useMeasure from "react-use-measure";
+import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/20/solid";
 
-const Home: NextPage = () => {
+export default function Page() {
+  let initialHeight = 4;
+  let height = 12;
+  let buffer = 12;
+  let [ref, bounds] = useMeasure();
+  let [hovered, setHovered] = useState(false);
+  let [panning, setPanning] = useState(false);
+  let progress = useMotionValue(0.5);
+  let width = useTransform(progress, (v) => `${v * 100}%`);
+  let roundedProgress = useTransform(
+    progress,
+    (v) => `${roundTo(v * 100, 0)}%`
+  );
+  let [progressState, setProgressState] = useState(roundedProgress.get());
+  let state = panning ? "panning" : hovered ? "hovered" : "idle";
+
+  useEffect(() => {
+    roundedProgress.onChange((v) => setProgressState(v));
+  }, [roundedProgress]);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-2">
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <MotionConfig transition={transition}>
+      <div className="flex items-center justify-center h-full max-h-[800px] py-16">
+        <div className="w-[375px] h-full bg-gray-800 rounded-2xl flex flex-col justify-center px-4 pt-4">
 
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
-
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="rounded-md bg-gray-100 p-3 font-mono text-lg">
-            pages/index.tsx
-          </code>
-        </p>
-
-        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and its API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          <div className="flex flex-1 flex-col items-center justify-center">
+            <div className="flex items-center justify-center w-full">
+              <motion.div
+                initial={false}
+                animate={{
+                  color:
+                    hovered || panning
+                      ? "rgb(255,255,255)"
+                      : "rgb(120,113,108)",
+                }}
+                className="flex justify-start shrink-0 w-6"
+              >
+                <SpeakerXMarkIcon className="w-4 h-4" />
+              </motion.div>
+              {/* Slider */}
+              <motion.div
+                animate={state}
+                onPanStart={() => setPanning(true)}
+                onPanEnd={() => setPanning(false)}
+                onPointerEnter={() => setHovered(true)}
+                onPointerLeave={() => setHovered(false)}
+                onPan={(event, info) => {
+                  let deltaInPercent = info.delta.x / bounds.width;
+                  let newPercent = clamp(progress.get() + deltaInPercent, 0, 1);
+                  progress.set(newPercent);
+                }}
+                style={{ height: height + buffer }}
+                className="flex items-center justify-center relative touch-none grow-0"
+                variants={{
+                  idle: { width: "calc(95% - 48px)" },
+                  hovered: { width: "calc(100% - 48px)" },
+                  panning: { width: "calc(100% - 48px)" },
+                }}
+                initial={false}
+                ref={ref}
+              >
+                <motion.div
+                  initial={false}
+                  variants={{
+                    idle: { height: initialHeight },
+                    hovered: { height },
+                    panning: { height },
+                  }}
+                  className="relative rounded-full overflow-hidden w-full"
+                >
+                  <div className="h-full bg-white/20" />
+                  <motion.div
+                    style={{ width }}
+                    className="bg-white absolute w-[20%] inset-0"
+                  />
+                </motion.div>
+              </motion.div>
+              <motion.div
+                initial={false}
+                animate={{
+                  color:
+                    hovered || panning
+                      ? "rgb(255,255,255)"
+                      : "rgb(120,113,108)",
+                }}
+                className="flex justify-end shrink-0 w-6"
+              >
+                <SpeakerWaveIcon className="w-4 h-4" />
+              </motion.div>
+            </div>
+            {/* Label */}
+            <motion.div
+              initial={false}
+              animate={{
+                color:
+                  hovered || panning ? "rgb(255,255,255)" : "rgb(120,113,108)",
+              }}
+              className={`select-none mt-2 mb-2 text-center text-sm font-semibold tabular-nums`}
+            >
+              {progressState}
+            </motion.div>
+          </div>
         </div>
-      </main>
-
-      <footer className="flex h-24 w-full items-center justify-center border-t">
-        <a
-          className="flex items-center justify-center gap-2"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-        </a>
-      </footer>
-    </div>
-  )
+      </div>
+    </MotionConfig>
+  );
 }
 
-export default Home
+let transition = { type: "spring", bounce: 0, duration: 0.3 };
+
+let clamp = (num: number, min: number, max: number) =>
+  Math.max(Math.min(num, max), min);
+
+function roundTo(number: number, decimals: number): number {
+  return Math.round(number * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
